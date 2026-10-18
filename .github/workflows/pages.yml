@@ -1,0 +1,51 @@
+# Publishes the WordCraft web build to GitHub Pages (https://<owner>.github.io/<repo>/).
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Deploy to GitHub Pages
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits instead of cancelling one already in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only the default branch is published; pushes to other branches are skipped.
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # A build with a stale index.html (wrong hash or integrity) would deploy fine and then
+      # never start in the browser, so stop here instead.
+      - name: Check build files
+        run: python3 .github/scripts/check_site.py
+
+      # Publish the app only: repo docs, the local test server and the stock *.original
+      # backups stay out. GitHub Pages ignores _headers/.htaccess (it sets its own headers).
+      - name: Stage site
+        run: |
+          mkdir _site
+          git ls-files -z \
+            | grep -zvE '^(\.github/|README\.md$|HOSTING\.md$|PWA\.md$|serve\.py$|\.htaccess|_headers|.*\.original)' \
+            | xargs -0 cp --parents -t _site
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
