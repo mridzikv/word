@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content">
+  <title>Word-in</title>
+  <link rel="icon" href="./wordcraft-fa59e09a3f921e03.ico" integrity="sha384-99DzWb82rFgkdw7hjKziyDQaHbMTklb9MWeLKF7LcVUnq80H4nDrc/pjHJtAj/AA"/>
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#3b5bdb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="WordCraft">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+<script type="module">
+// Bundled fonts: put the metric-compatible open fonts in fonts/ (Liberation for Times New Roman,
+// Arial and Courier New; Carlito for Calibri; Caladea for Cambria) into the IndexedDB store the
+// web build already reads its user fonts from at start-up ("wordcraft" / "fonts"). Each file is
+// seeded once: a font the user removes in the app stays removed. Any failure only logs; the app
+// then starts with its built-in fonts as before.
+async function seedBundledFonts() {
+  const SEEDED = 'wordcraft-pwa-seeded-fonts';
+  let seeded = [];
+  try { seeded = JSON.parse(localStorage.getItem(SEEDED) || '[]'); } catch (e) {}
+  let list;
+  try { list = (await (await fetch('./fonts/fonts.json', { cache: 'no-cache' })).json()).files || []; }
+  catch (e) { return; } // offline or no fonts/ folder: nothing new to add
+  const todo = list.filter((f) => !seeded.includes(f));
+  if (!todo.length || !('indexedDB' in window)) return;
+  const loading = document.getElementById('wordcraft_loading');
+  if (loading) loading.textContent = 'Preparing fonts…';
+  try {
+    const fetched = await Promise.all(todo.map(async (f) => {
+      const res = await fetch('./fonts/' + f);
+      if (!res.ok) throw new Error(f + ': HTTP ' + res.status);
+      return [f, new Uint8Array(await res.arrayBuffer())];
+    }));
+    const db = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('wordcraft', 1);
+      req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('fonts')) req.result.createObjectStore('fonts'); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('fonts', 'readwrite');
+      const store = tx.objectStore('fonts');
+      // Same key the app itself uses ("<stem>.ttf"), so the app's Remove font deletes this entry.
+      for (const [f, bytes] of fetched) store.put(bytes, f.replace(/\.[^.]+$/, '') + '.ttf');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+    try { localStorage.setItem(SEEDED, JSON.stringify(seeded.concat(todo))); } catch (e) {}
+  } catch (e) {
+    console.warn('WordCraft: bundled fonts not added', e);
+  } finally {
+    if (loading) loading.textContent = 'Loading WordCraft…';
+  }
+}
+await seedBundledFonts();
+
+import init, * as bindings from './wordcraft-web-8f83828293ff7c4d.js';
+const wasm = await init({ module_or_path: './wordcraft-web-8f83828293ff7c4d_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  <script>
+    // PWA: register the service worker (offline + install). Needs https:// or http://localhost.
+    if ('serviceWorker' in navigator && window.isSecureContext) {
+      addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .catch(function (e) { console.warn('WordCraft: service worker registration failed', e); });
+        // Ask the browser not to evict the ~40 MB offline copy under storage pressure.
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+      });
+    }
+  </script>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #e6e6e6; }
+    #wordcraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #wordcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #555; font: 14px system-ui, sans-serif; pointer-events: none; }
+  </style>
+<link rel="modulepreload" href="./wordcraft-web-8f83828293ff7c4d.js" crossorigin="anonymous" integrity="sha384-kvda2bhdhxqLFHtCVuOiul0daobVKYWGI0vHqZ95b4gvFhPtBXbHdje7OYiNq2B4"><link rel="preload" href="./wordcraft-web-8f83828293ff7c4d_bg.wasm" crossorigin="anonymous" integrity="sha384-Esl1v6gIfymroUJz1qUPiLaIJOi/pdTaJH2yhhOLgou0I0OpdG85Bvs1MhbOdmTB" as="fetch" type="application/wasm"></head>
+<body>
+  <canvas id="wordcraft_canvas"></canvas>
+  <div id="wordcraft_loading">Loading WordCraft&hellip;</div>
+</body>
+</html>

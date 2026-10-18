@@ -1,0 +1,25 @@
+{
+  "comment": "Metric-compatible open fonts seeded into WordCraft's font store on first start (see FONTS.md). Liberation Serif = Times New Roman, Liberation Sans = Arial, Liberation Mono = Courier New, Carlito = Calibri, Caladea = Cambria.",
+  "files": [
+    "Caladea-Bold.woff2",
+    "Caladea-BoldItalic.woff2",
+    "Caladea-Italic.woff2",
+    "Caladea-Regular.woff2",
+    "Carlito-Bold.woff2",
+    "Carlito-BoldItalic.woff2",
+    "Carlito-Italic.woff2",
+    "Carlito-Regular.woff2",
+    "LiberationMono-Bold.woff2",
+    "LiberationMono-BoldItalic.woff2",
+    "LiberationMono-Italic.woff2",
+    "LiberationMono-Regular.woff2",
+    "LiberationSans-Bold.woff2",
+    "LiberationSans-BoldItalic.woff2",
+    "LiberationSans-Italic.woff2",
+    "LiberationSans-Regular.woff2",
+    "LiberationSerif-Bold.woff2",
+    "LiberationSerif-BoldItalic.woff2",
+    "LiberationSerif-Italic.woff2",
+    "LiberationSerif-Regular.woff2"
+  ]
+}

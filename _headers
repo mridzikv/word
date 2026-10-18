@@ -1,0 +1,21 @@
+# Netlify / Cloudflare Pages header rules (see HOSTING.md). Other hosts: set the same headers.
+/*
+  X-Content-Type-Options: nosniff
+
+/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+# Only the hashed build files are immutable. sw.js must stay revalidated, or updates stall.
+/wordcraft-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
